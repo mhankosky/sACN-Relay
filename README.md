@@ -32,6 +32,7 @@ Control **4 or 8 relays** via sACN over Ethernet. Perfect for **lighting control
   [Tested with Pi 4/B](https://www.amazon.com/Raspberry-Model-2019-Quad-Bluetooth/dp/B07TC2BK1X)
 - 4-channel or 8-channel relay module (5V, **active low**)  
   [Example: 4-channel](https://www.amazon.com/dp/B00KTEN3TM)
+  [Example: 8-channel](https://www.amazon.com/DEVMO-Electrical-Equipments-Optocoupler-Compatible/dp/B08TMN8KN6)
 - 0.96" I2C OLED display (SSD1306, 128x64)  
   [Example](https://www.amazon.com/UCTRONICS-SSD1306-Self-Luminous-Display-Raspberry/dp/B072Q2X2LL)
 - POE Hat (Optional)  
