@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Interface - sACN Relay 4{% endblock %}
+{% set active_page = 'interface' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Interface Settings</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Theme</h6>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="theme" value="light" id="light" {{ 'checked' if theme == 'light' else '' }}>
+                <label class="form-check-label" for="light">Light Mode</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="theme" value="dark" id="dark" {{ 'checked' if theme == 'dark' else '' }}>
+                <label class="form-check-label" for="dark">Dark Mode</label>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Save Theme</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

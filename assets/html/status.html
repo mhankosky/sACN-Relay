@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Status - sACN Relay 4{% endblock %}
+{% set active_page = 'status' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Status</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Live Status (0.1s)</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Relay</th>
+                        <th>Channel</th>
+                        <th>DMX %</th>
+                        <th>Set-point</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="statusTableBody">
+                    {% for s in status %}
+                    <tr>
+                        <td>Relay {{ loop.index }}</td>
+                        <td>{{ s.channel }}</td>
+                        <td>{{ s.dmx_percent }}%</td>
+                        <td>{{ s.setpoint }}%</td>
+                        <td><span class="badge badge-{{ 'success' if s.relay_state=='ON' else 'secondary' }}">{{ s.relay_state }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateStatus() {
+        fetch('/status/data')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('statusTableBody');
+                tbody.innerHTML = '';
+                data.status.forEach((s, i) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>Relay ${i + 1}</td>
+                        <td>${s.channel}</td>
+                        <td>${s.dmx_percent}%</td>
+                        <td>${s.setpoint}%</td>
+                        <td><span class="badge badge-${s.relay_state === 'ON' ? 'success' : 'secondary'}">${s.relay_state}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            });
+    }
+
+    // Update every 100ms
+    setInterval(updateStatus, 100);
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Networking - sACN Relay 4{% endblock %}
+{% set active_page = 'networking' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Networking Settings</h1>
+<div class="row"><div class="col-lg-6">
+    <div class="card shadow mb-4"><div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Network Mode</h6></div>
+    <div class="card-body">
+        <form method="post" id="networkForm">
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="network" value="dhcp" id="dhcp" {{ 'checked' if network == 'dhcp' else '' }}>
+                    <label class="form-check-label" for="dhcp">DHCP</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="network" value="static" id="static" {{ 'checked' if network == 'static' else '' }}>
+                    <label class="form-check-label" for="static">Static IP</label>
+                </div>
+            </div>
+
+            <div id="staticFields" style="display: {{ 'block' if network == 'static' else 'none' }};">
+                <div class="form-group"><label>IP Address</label>
+                    <input class="form-control" type="text" name="ip" value="{{ ip }}" {{ '' if network == 'static' else 'disabled' }}>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6"><label>Subnet Mask</label>
+                        <input class="form-control" type="text" name="subnet" value="{{ subnet }}" {{ '' if network == 'static' else 'disabled' }}>
+                    </div>
+                    <div class="form-group col-md-6"><label>Gateway</label>
+                        <input class="form-control" type="text" name="gateway" value="{{ gateway }}" {{ '' if network == 'static' else 'disabled' }}>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6"><label>DNS 1</label>
+                        <input class="form-control" type="text" name="dns1" value="{{ dns1 }}" {{ '' if network == 'static' else 'disabled' }}>
+                    </div>
+                    <div class="form-group col-md-6"><label>DNS 2</label>
+                        <input class="form-control" type="text" name="dns2" value="{{ dns2 }}" {{ '' if network == 'static' else 'disabled' }}>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" type="submit">Save & Apply</button>
+        </form>
+    </div></div>
+</div></div>
+
+<p class="mb-4">Current IP: {{ current_ip }}</p>
+<p class="text-warning"><strong>Static changes take ~10s. Refresh after save.</strong></p>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dhcp = document.getElementById('dhcp');
+        const static = document.getElementById('static');
+        const fields = document.getElementById('staticFields').querySelectorAll('input');
+
+        function toggleStatic() {
+            const enabled = static.checked;
+            fields.forEach(f => f.disabled = !enabled);
+            document.getElementById('staticFields').style.display = enabled ? 'block' : 'none';
+        }
+
+        dhcp.addEventListener('change', toggleStatic);
+        static.addEventListener('change', toggleStatic);
+        toggleStatic();
+    });
+</script>
+{% endblock %}

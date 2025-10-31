@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Backup - sACN Relay 4{% endblock %}
+{% set active_page = 'backup' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Backup & Restore</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Download Current Config</h6>
+            </div>
+            <div class="card-body">
+                <a href="/backup/download" class="btn btn-success">
+                    <i class="fa fa-download"></i> Download config.json
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Upload Config</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/backup/upload" enctype="multipart/form-data">
+                    <div class="custom-file">
+                        <input type="file" class="custom-file-input" id="file" name="file" accept=".json">
+                        <label class="custom-file-label" for="file">Choose file...</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">
+                        <i class="fa fa-upload"></i> Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || 'Choose file...';
+        document.querySelector('.custom-file-label').textContent = fileName;
+    });
+</script>
+{% endblock %}

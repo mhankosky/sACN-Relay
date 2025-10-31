@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Confirm Restore{% endblock %}
+{% set active_page = 'backup' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Confirm Config Restore</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <p>Uploaded config version: <strong>{{ uploaded.version }}</strong></p>
+        <p>Current version: <strong>{{ version }}</strong></p>
+        <p class="text-warning">This will overwrite all current settings.</p>
+
+        <form method="post" action="/backup/confirm">
+            <button type="submit" class="btn btn-danger">Yes, Overwrite</button>
+            <a href="/backup" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

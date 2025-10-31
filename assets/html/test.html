@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Test - sACN Relay 4{% endblock %}
+{% set active_page = 'test' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Test Relays</h1>
+
+<div class="row">
+    {% for i in range(1,5) %}
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Relay {{ i }}</h5>
+                <p class="card-text">Channel: {{ channels[i-1] }}</p>
+                <form method="post" action="/pulse/{{ i }}">
+                    <button type="submit" class="btn btn-warning">Pulse 5s</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

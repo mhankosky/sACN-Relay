@@ -1,0 +1,133 @@
+/* SB Admin 2 Dark Mode - Full Override */
+body {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+/* Remove white backgrounds */
+.bg-white,
+.container-fluid,
+#content-wrapper,
+#content,
+.topbar {
+    background-color: #2c3e50 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Cards */
+.card {
+    background-color: #34495e !important;
+    border: 1px solid #2c3e50 !important;
+    color: #e0e0e0 !important;
+}
+
+.card-header {
+    background-color: #2c3e50 !important;
+    border-bottom: 1px solid #34495e !important;
+    color: #3498db !important;
+}
+
+/* Text */
+.text-gray-800,
+.text-gray-900,
+.h1, .h2, .h3, .h4, .h5, .h6,
+h1, h2, h3, h4, h5, h6 {
+    color: #ecf0f1 !important;
+}
+
+.text-gray-600 {
+    color: #bdc3c7 !important;
+}
+
+.text-primary {
+    color: #3498db !important;
+}
+
+/* Form controls */
+.form-control {
+    background-color: #2c3e50 !important;
+    border-color: #34495e !important;
+    color: #ecf0f1 !important;
+}
+
+.form-control:focus {
+    background-color: #2c3e50 !important;
+    border-color: #3498db !important;
+    color: #ecf0f1 !important;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25) !important;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #3498db !important;
+    border-color: #2980b9 !important;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9 !important;
+    border-color: #1f618d !important;
+}
+
+/* Table */
+.table {
+    color: #ecf0f1 !important;
+    background-color: #34495e !important;
+}
+
+.table th {
+    background-color: #2c3e50 !important;
+    border-color: #34495e !important;
+}
+
+.table td {
+    border-color: #34495e !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(44, 62, 80, 0.7) !important;
+}
+
+/* Navbar / Topbar */
+.topbar {
+    background-color: #2c3e50 !important;
+    border-bottom: 1px solid #34495e !important;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: #ecf0f1 !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover {
+    color: #3498db !important;
+}
+
+/* Sidebar active */
+.sidebar-dark .nav-item .nav-link.active {
+    background-color: #1a252f !important;
+    color: #3498db !important;
+}
+
+/* Badge */
+.badge-success { background-color: #27ae60 !important; }
+.badge-secondary { background-color: #95a5a6 !important; }
+
+/* Alerts */
+.alert {
+    color: #ecf0f1 !important;
+}
+.alert-success { background-color: #27ae60 !important; border-color: #219a52 !important; }
+.alert-danger { background-color: #e74c3c !important; border-color: #c0392b !important; }
+
+/* Scrollbar (optional) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #2c3e50;
+}
+::-webkit-scrollbar-thumb {
+    background: #555;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
