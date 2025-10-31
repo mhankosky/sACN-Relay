@@ -1,14 +1,9 @@
-**Here is the full `README.md` content as plain text (no markdown formatting issues).**  
-Just copy and paste this into your GitHub `README.md` file.
 
----
-
-```
 # sACN Relay 4
 
-A compact, production-ready sACN (E1.31) to DMX relay controller for Raspberry Pi.
+**A compact, production-ready sACN (E1.31) to DMX relay controller for Raspberry Pi.**
 
-Control 4 relays via sACN over Ethernet. Perfect for lighting control, theater, events, and industrial automation.
+Control **4 relays** via sACN over Ethernet. Perfect for **lighting control**, **theater**, **events**, and **industrial automation**.
 
 ---
 
@@ -16,19 +11,19 @@ Control 4 relays via sACN over Ethernet. Perfect for lighting control, theater, 
 
 | Feature | Description |
 |-------|-----------|
-| sACN Input | Listens to any universe (1–63999) |
-| 4 Relays | Individually controlled via DMX channels |
-| Set-point Threshold | Relay ON at ≥ X% (1–100%) |
-| Web UI | Full control from any device |
-| Dark/Light Mode | Toggle UI theme |
-| Static IP + DNS | Full network configuration |
-| Hostname Change | Set custom device name |
-| Password Protection | Optional login |
-| Backup/Restore | Export/import config.json |
-| OLED Display | Shows IP, universe, channels |
-| Test Mode | Pulse relays for 5s |
-| AirGap Ready | No internet required |
-| Self-Contained | Runs from ~/sACN-Relay/ |
+| **sACN Input** | Listens to any universe (1–63999) |
+| **4 Relays** | Individually controlled via DMX channels |
+| **Set-point Threshold** | Relay ON at ≥ X% (1–100%) |
+| **Web UI** | Full control from any device |
+| **Dark/Light Mode** | Toggle UI theme |
+| **Static IP + DNS** | Full network configuration |
+| **Hostname Change** | Set custom device name |
+| **Password Protection** | Optional login |
+| **Backup/Restore** | Export/import `config.json` |
+| **OLED Display** | Shows IP, universe, channels |
+| **Test Mode** | Pulse relays for 5s |
+| **AirGap Ready** | No internet required |
+| **Self-Contained** | Runs from `~/sACN-Relay/` |
 
 ---
 
@@ -76,23 +71,28 @@ git clone https://github.com/mhankosky/sACN-Relay.git && cd sACN-Relay && chmod 
 ## Access Web UI
 
 Open in browser:
+```
 http://<pi-ip>:8080
+```
 
-Default password (if enabled): admin123
+Default password (if enabled): `admin123`
 
 ---
 
 ## Configuration
 
 All settings saved in:
+```
 ~/sACN-Relay/config.json
+```
 
-Never edit manually — use the web UI.
+**Never edit manually** — use the web UI.
 
 ---
 
 ## File Structure
 
+```
 ~/sACN-Relay/
 ├── sacn_relay_controller.py
 ├── sacn_venv/                 # Python environment
@@ -101,23 +101,24 @@ Never edit manually — use the web UI.
     ├── css/                   # SB Admin 2 + dark mode
     ├── js/                    # Bootstrap + SB Admin
     └── html/                  # All web pages
+```
 
 ---
 
 ## Security
 
-- Password protection (enable in Security tab)
-- Plain text storage (AirGap safe)
-- Session-based login
-- Logout button
+- **Password protection** (enable in **Security** tab)
+- **Plain text storage** (AirGap safe)
+- **Session-based login**
+- **Logout button**
 
 ---
 
 ## Backup & Restore
 
-- Download: Full config with hostname
-- Upload: Validates version + structure
-- Confirm before overwrite
+- **Download**: Full config with hostname
+- **Upload**: Validates version + structure
+- **Confirm before overwrite**
 
 ---
 
@@ -125,9 +126,9 @@ Never edit manually — use the web UI.
 
 | Version | Changes |
 |--------|--------|
-| 1.1.4  | DNS1/DNS2, partial config save |
-| 1.1.0  | Dark mode, security, backup |
-| 1.0.1  | Initial release |
+| `1.1.4` | DNS1/DNS2, partial config save |
+| `1.1.0` | Dark mode, security, backup |
+| `1.0.1` | Initial release |
 
 ---
 
@@ -152,7 +153,9 @@ MIT License — Free for personal and commercial use.
 
 ---
 
-Built with care for reliability in the field.
+**Built with care for reliability in the field.**
+
+---
 ```
 
 ---
