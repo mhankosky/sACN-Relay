@@ -1,52 +1,40 @@
 #!/bin/bash
-set -e  # Exit on any error
+set -e
 
-echo "=== sACN Relay 4 v1.2.0 – Automated Installer ==="
+echo "=== sACN Relay 4/8 v1.2.0 – Final Installer ==="
 
-# ------------------- 1. Detect Script Location -------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$HOME/sACN-Relay"
 VENV_DIR="$APP_DIR/sacn_venv"
 
-echo "[1/7] Script location: $SCRIPT_DIR"
-echo "[ ] Installing to: $APP_DIR"
+echo "[1/7] Installing to: $APP_DIR"
 
-# ------------------- 2. Update System -------------------
+# ------------------- 1. Update System -------------------
 echo "[2/7] Updating system..."
 sudo apt update && sudo apt upgrade -y
 
-# ------------------- 3. Install Dependencies -------------------
+# ------------------- 2. Install Dependencies -------------------
 echo "[3/7] Installing system dependencies..."
 sudo apt install -y python3-pip python3-venv git i2c-tools
 
-# Enable I2C
+# ------------------- 3. Enable I2C -------------------
 echo "[ ] Enabling I2C interface..."
 sudo raspi-config nonint do_i2c 1
 
-# ------------------- 4. Create App Directory -------------------
-echo "[4/7] Creating application directory: $APP_DIR"
-mkdir -p "$APP_DIR"
-mkdir -p "$APP_DIR/assets/css" "$APP_DIR/assets/js" "$APP_DIR/assets/html"
-
-# ------------------- 5. Copy Files -------------------
-echo "[5/7] Copying application files from $SCRIPT_DIR..."
-cp "$SCRIPT_DIR/sacn_relay_controller.py" "$APP_DIR/"
-cp -r "$SCRIPT_DIR/assets/"* "$APP_DIR/assets/" 2>/dev/null || true
-cp "$SCRIPT_DIR/install.sh" "$APP_DIR/" 2>/dev/null || true
-
-# ------------------- 6. Setup Python Environment -------------------
-echo "[6/7] Setting up Python virtual environment in $VENV_DIR..."
+# ------------------- 4. Create Virtual Environment -------------------
+echo "[4/7] Creating Python virtual environment..."
 python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 
+# ------------------- 5. Install Python Packages -------------------
+echo "[5/7] Installing Python dependencies..."
 pip install --upgrade pip
-pip install flask flask-session sacn adafruit-circuitpython-ssd1306 pillow gpiozero netifaces psutil
+pip install flask flask-session sacn adafruit-circuitpython-ssd1306 pillow gpiozero netifaces psutil adafruit-blinka RPi.GPIO
 
-# ------------------- 7. Create Systemd Service -------------------
-echo "[7/7] Creating systemd service..."
+# ------------------- 6. Create Systemd Service -------------------
+echo "[6/7] Creating systemd service..."
 sudo tee /etc/systemd/system/sacn-relay.service > /dev/null << EOF
 [Unit]
-Description=sACN Relay 4 Controller
+Description=sACN Relay 4/8 Controller
 After=network.target
 
 [Service]
@@ -62,16 +50,15 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# ------------------- 8. Enable & Start Service -------------------
-echo "[ ] Enabling and starting service..."
+# ------------------- 7. Enable & Start Service -------------------
+echo "[7/7] Enabling and starting service..."
 sudo systemctl daemon-reload
 sudo systemctl enable sacn-relay.service
-sudo systemctl start sacn-relay.service
+sudo systemctl restart sacn-relay.service
 
 # ------------------- Final Output -------------------
 echo
 echo "=== INSTALLATION COMPLETE! ==="
-echo "App Location: $APP_DIR"
 echo "Web UI: http://$(hostname -I | awk '{print $1}' 2>/dev/null || echo '<IP>'):8080"
 echo
 echo "=== SERVICE CONTROL ==="
@@ -81,7 +68,7 @@ echo "  Stop:     sudo systemctl stop sacn-relay"
 echo "  Start:    sudo systemctl start sacn-relay"
 echo
 echo "=== HARDWARE CHECK ==="
-echo "  OLED:  i2cdetect -y 1  (should show 3C)"
+echo "  OLED:  i2cdetect -y 1  (should show 3c)"
 echo "  GPIO:  Test relays via Test page"
 echo
 echo "Reboot recommended: sudo reboot"

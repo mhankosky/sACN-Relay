@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}OTA Update{% endblock %}
+{% set active_page = 'ota' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">OTA Update</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Upload New Controller</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Current Version: <strong>{{ current_version }}</strong></label>
+                <input type="file" class="form-control" name="file" accept=".py" required>
+            </div>
+            <button type="submit" class="btn btn-warning">Update & Restart</button>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <strong>Requirements:</strong>
+    <ul>
+        <li>File must be named <code>sacn_relay_controller.py</code></li>
+        <li>Version must be higher than <code>{{ current_version }}</code></li>
+        <li>No syntax errors</li>
+    </ul>
+</div>
+{% endblock %}

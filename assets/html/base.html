@@ -76,7 +76,13 @@
                     <span>Security</span>
                 </a>
             </li>
-
+<!-- Add this before Backup -->
+<li class="nav-item {% if active_page == 'ota' %}active{% endif %}">
+    <a class="nav-link" href="/ota">
+        <i class="fa fa-cloud-upload"></i>
+        <span>OTA Update</span>
+    </a>
+</li>
             <li class="nav-item {% if active_page == 'backup' %}active{% endif %}">
                 <a class="nav-link" href="/backup">
                     <i class="fa fa-save"></i>

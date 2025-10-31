@@ -1,12 +1,11 @@
-import socket, threading, time, json, subprocess, os, re, tempfile
+import socket, threading, time, json, subprocess, os, re, tempfile, ast
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, flash, send_file, session
 from flask_session import Session
 from sacn import sACNreceiver
-from adafruit_ssd1306 import SSD1306_I2C
 from PIL import Image, ImageDraw, ImageFont
 import board, busio, netifaces
-from gpiozero import OutputDevice, Button
-import psutil  # For CPU/Memory
+from gpiozero import OutputDevice
+import psutil
 
 # -------------------------- APP DIRECTORY --------------------------
 APP_DIR = os.path.expanduser('~/sACN-Relay')
@@ -26,15 +25,21 @@ CURRENT_VERSION = "1.2.0"
 
 # -------------------------- GPIO (8 Relays) --------------------------
 RELAY_PINS = [17, 18, 27, 22, 23, 24, 25, 26]  # 8 channels
-BUTTON_PIN = 5  # Reset button
 relays = [OutputDevice(p, active_high=False, initial_value=False) for p in RELAY_PINS]
-button = Button(BUTTON_PIN, pull_up=True, bounce_time=0.2)
 
 # -------------------------- OLED --------------------------
 i2c = busio.I2C(board.SCL, board.SDA)
-oled = SSD1306_I2C(128, 64, i2c)
-oled.fill(0); oled.show()
-image = Image.new("1", (oled.width, oled.height))
+oled = None
+OLED_AVAILABLE = True
+try:
+    oled = SSD1306_I2C(128, 64, i2c)
+    oled.fill(0); oled.show()
+except Exception as e:
+    print(f"OLED not available: {e}")
+    OLED_AVAILABLE = False
+    oled = None
+
+image = Image.new("1", (128, 64))
 draw = ImageDraw.Draw(image)
 font = ImageFont.load_default()
 small_font = ImageFont.load_default()
@@ -44,6 +49,7 @@ receiver = None
 
 # -------------------------- Config --------------------------
 config_file = os.path.join(APP_DIR, 'config.json')
+py_file = os.path.join(APP_DIR, 'sacn_relay_controller.py')
 
 default_config = {
     'network': 'dhcp', 'ip': '192.168.1.100', 'subnet': '255.255.255.0',
@@ -52,11 +58,12 @@ default_config = {
     'universe': 1,
     'channels': [1, 2, 3, 4, 5, 6, 7, 8],
     'setpoints': [51, 51, 51, 51, 51, 51, 51, 51],
-    'mode': '4',  # '4' or '8'
+    'mode': '4',
     'version': CURRENT_VERSION,
     'theme': 'light',
     'security_enabled': False,
-    'password': 'admin123'
+    'password': 'admin123',
+    'py_file': py_file
 }
 config = default_config.copy()
 current_hostname = socket.gethostname()
@@ -72,11 +79,8 @@ def load_config():
                 loaded[key] = value
         if loaded['version'] != CURRENT_VERSION:
             loaded['version'] = CURRENT_VERSION
-        
-        # Ensure 8 entries
         loaded['channels'] = (loaded.get('channels', []) + [1]*8)[:8]
         loaded['setpoints'] = (loaded.get('setpoints', []) + [51]*8)[:8]
-        
         config.update(loaded)
     except FileNotFoundError:
         config.update(default_config)
@@ -89,7 +93,6 @@ def save_config():
 
 load_config()
 
-# Dynamic channel count
 MAX_CHANNELS = 8
 CHANNEL_COUNT = 4 if config['mode'] == '4' else 8
 relay_states = [False] * MAX_CHANNELS
@@ -146,7 +149,6 @@ def init_sacn():
         global current_dmx_values
         if p.dmxStartCode != 0x00: return
         d = p.dmxData
-        # Only process up to CHANNEL_COUNT
         for i in range(CHANNEL_COUNT):
             ch = config['channels'][i]
             if len(d) < ch: continue
@@ -158,8 +160,6 @@ def init_sacn():
             if new != relay_states[i]:
                 relay_states[i] = new
                 relays[i].on() if new else relays[i].off()
-
-        # Explicitly disable relays beyond CHANNEL_COUNT
         for i in range(CHANNEL_COUNT, MAX_CHANNELS):
             if relay_states[i]:
                 relay_states[i] = False
@@ -179,34 +179,6 @@ def _off(i):
     relay_states[i] = False
     relays[i].off()
 
-# ------------------- Hardware reset (button) ---------------
-def hardware_reset():
-    global config, relay_states, current_hostname, current_dmx_values
-    config.update(default_config)
-    save_config()
-    apply_network_config()
-    apply_hostname_config()
-    init_sacn()
-    for i in range(MAX_CHANNELS):
-        relay_states[i] = current_dmx_values[i] = 0
-        relays[i].off()
-    subprocess.run(['sudo', 'reboot'])
-
-button_pressed = 0
-resetting = False
-def bp():
-    global button_pressed, resetting
-    if not resetting:
-        button_pressed = time.time()
-        resetting = True
-def br():
-    global resetting
-    if resetting and time.time()-button_pressed >= 5:
-        print("Reset triggered!"); hardware_reset()
-    resetting = False
-button.when_pressed = bp
-button.when_released = br
-
 # -------------------------- OLED --------------------------
 def update_oled():
     while True:
@@ -217,7 +189,6 @@ def update_oled():
                 ip = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
         except: pass
         draw.rectangle((0,0,128,64), fill=0)
-        mode = "4" if CHANNEL_COUNT == 4 else "8"
         draw.text((0,0), f"{hn[:10]} U:{config['universe']}", font=font, fill=255)
         draw.text((0,20), f"({ip}:8080)", font=font, fill=255)
         bw, bh, m = 15, 12, 2
@@ -231,7 +202,8 @@ def update_oled():
             tx = x + (bw - (bb[2]-bb[0]))//2
             ty = y + (bh - (bb[3]-bb[1]))//2
             draw.text((tx,ty), f"{ch}", font=small_font, fill=txt)
-        oled.image(image); oled.show()
+        if OLED_AVAILABLE and oled:
+            oled.image(image); oled.show()
         time.sleep(1)
 
 threading.Thread(target=update_oled, daemon=True).start()
@@ -524,6 +496,51 @@ def backup_confirm():
 
     flash("Config restored successfully!", "success")
     return redirect(url_for('main'))
+
+# -------------------------- OTA UPDATE --------------------------
+@app.route('/ota', methods=['GET', 'POST'])
+def ota_update():
+    if not require_auth():
+        return redirect(url_for('login', next='/ota'))
+
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash("No file uploaded", "danger")
+            return redirect(url_for('ota_update'))
+        file = request.files['file']
+        if file.filename == '' or not file.filename.endswith('.py'):
+            flash("Invalid file", "danger")
+            return redirect(url_for('ota_update'))
+
+        try:
+            content = file.read().decode('utf-8')
+            ast.parse(content)
+        except Exception as e:
+            flash(f"Syntax error: {e}", "danger")
+            return redirect(url_for('ota_update'))
+
+        version_match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', content)
+        if not version_match:
+            flash("No version found", "danger")
+            return redirect(url_for('ota_update'))
+        new_version = version_match.group(1)
+        if new_version <= CURRENT_VERSION:
+            flash(f"Version {new_version} not newer than {CURRENT_VERSION}", "danger")
+            return redirect(url_for('ota_update'))
+
+        backup_path = os.path.join(APP_DIR, f"sacn_relay_controller.py.bak.v{CURRENT_VERSION}")
+        os.rename(config['py_file'], backup_path)
+
+        with open(config['py_file'], 'w') as f:
+            f.write(content)
+
+        flash(f"Updated to v{new_version}! Restarting...", "success")
+        threading.Timer(2.0, lambda: subprocess.run(['sudo', 'systemctl', 'restart', 'sacn-relay'])).start()
+        return redirect(url_for('ota_update'))
+
+    return render_template('ota.html',
+        current_version=CURRENT_VERSION,
+        security_enabled=config['security_enabled'])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=False)

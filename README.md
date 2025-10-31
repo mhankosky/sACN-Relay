@@ -50,26 +50,31 @@ See detailed wiring guide: [`wiring.md`](wiring.md)
 ---
 
 ## Installation (Direct on Pi)
+## Installation (Direct on Pi – Git Clone)
 
 ```bash
-# 1. Clone anywhere
-git clone https://github.com/mhankosky/sACN-Relay.git ~/my-temp-folder
+# 1. SSH into your Pi
+ssh pi@<pi-ip>
 
-# 2. Go to folder
-cd ~/my-temp-folder
+# 2. Clone the project directly into your home directory
+git clone https://github.com/mhankosky/sACN-Relay.git ~/sACN-Relay
 
-# 3. Run installer — installs to ~/sACN-Relay/
+# 3. Enter the project folder
+cd ~/sACN-Relay
+
+# 4. Make installer executable
 chmod +x install.sh
+
+# 5. Run the installer
 sudo ./install.sh
 
-The installer:
+The installer will:
 
-Sets up Python venv
-Installs dependencies (psutil, sacn, etc.)
-Configures systemd service
-Enables I2C
-Starts on boot
-
+Enable I2C
+Create Python virtual environment
+Install all dependencies
+Set up systemd service
+Start the web server on boot
 
 
 Access Web UI
