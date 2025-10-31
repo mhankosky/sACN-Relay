@@ -29,10 +29,13 @@ Control **4 relays** via sACN over Ethernet. Perfect for **lighting control**, *
 
 ## Hardware Requirements
 
-- Raspberry Pi (Zero W, 3, 4, 5)
-- 4-channel relay module (5V, active low)
-- 0.96" I2C OLED display (SSD1306, 128x64)
-- Ethernet or Wi-Fi
+- Raspberry Pi (Zero W, 3, 4, 5) (Tested with Pi 4/B) - https://www.amazon.com/Raspberry-Model-2019-Quad-Bluetooth/dp/B07TC2BK1X
+- 4-channel relay module (5V, active low) - https://www.amazon.com/dp/B00KTEN3TM
+- 0.96" I2C OLED display (SSD1306, 128x64) - https://www.amazon.com/UCTRONICS-SSD1306-Self-Luminous-Display-Raspberry/dp/B072Q2X2LL
+- POE Hat (Optional) - https://www.amazon.com/dp/B0928ZD7QQ
+- Ethernet or Wifi
+
+- Ethernet is recommended over Wifi
 
 ---
 
