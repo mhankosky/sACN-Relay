@@ -32,27 +32,7 @@ This guide shows **exact GPIO connections** for the **Raspberry Pi** to control 
 
 ---
 
-## Wiring Diagram (Text)
-Raspberry Pi GPIO
-┌─────────────────────────────────────────────┐
-│  3.3V | 5V | 5V | GND | GND | GND | GND | GND  │
-│   2   | 4  | 6  | 8   | 10  | 12  | 14  | 16   │
-│  SDA  |    |     |     |     |     |     | BTN  │
-│   │   |    |     |     |     |     |     |  │   │
-│   └──┴────┴─────┴─────┴─────┴─────┴─────┴──┘   │
-│       │     │     │     │     │     │        │
-│      GND   VCC  IN4  IN3  IN2  IN1        │
-│       │     │     │     │     │     │        │
-│    ┌──┴──┐  │  ┌──┴──┐  ┌──┴──┐  ┌──┴──┐     │
-│    │     │  │  │     │  │     │  │     │     │
-│    │OLED │  │  │ R4  │  │ R3  │  │ R2  │  │ R1  │
-│    │     │  │  │     │  │     │  │     │     │
-│    └─────┘  │  └─────┘  └─────┘  └─────┘     │
-│             │                                │
-│          5V GND                           5V │
-│             │                                │
-└─────────────────────────────────────────────┘
-text---
+
 
 ## Relay Module Connections
 
