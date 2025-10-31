@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit on any error
 
-echo "=== sACN Relay 4 v1.1.4 – Automated Installer ==="
+echo "=== sACN Relay 4 v1.2.0 – Automated Installer ==="
 
 # ------------------- 1. Detect Script Location -------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,8 +32,6 @@ mkdir -p "$APP_DIR/assets/css" "$APP_DIR/assets/js" "$APP_DIR/assets/html"
 echo "[5/7] Copying application files from $SCRIPT_DIR..."
 cp "$SCRIPT_DIR/sacn_relay_controller.py" "$APP_DIR/"
 cp -r "$SCRIPT_DIR/assets/"* "$APP_DIR/assets/" 2>/dev/null || true
-
-# Copy install.sh itself (optional)
 cp "$SCRIPT_DIR/install.sh" "$APP_DIR/" 2>/dev/null || true
 
 # ------------------- 6. Setup Python Environment -------------------
@@ -42,7 +40,7 @@ python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 
 pip install --upgrade pip
-pip install flask flask-session sacn adafruit-circuitpython-ssd1306 pillow gpiozero netifaces
+pip install flask flask-session sacn adafruit-circuitpython-ssd1306 pillow gpiozero netifaces psutil
 
 # ------------------- 7. Create Systemd Service -------------------
 echo "[7/7] Creating systemd service..."

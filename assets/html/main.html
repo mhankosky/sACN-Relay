@@ -4,78 +4,38 @@
 
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">DMX Settings</h1>
-<div class="row"><div class="col-lg-6">
-    <div class="card shadow mb-4"><div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Configuration</h6></div>
-    <div class="card-body"><form method="post">
-        <div class="form-group"><label>Universe</label>
-            <input class="form-control" type="number" name="universe" value="{{ universe }}" min="1" max="63999">
-        </div>
 
-        <!-- Relay 1 -->
-        <div class="form-row mb-2">
-            <div class="col-md-6">
-                <label>Relay 1 Channel</label>
-                <input class="form-control" type="number" name="ch1" value="{{ ch1 }}" min="1" max="512">
+<div class="row"><div class="col-lg-8">
+    <div class="card shadow mb-4"><div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Universe & Channels</h6></div>
+    <div class="card-body">
+        <form method="post">
+            <div class="form-group">
+                <label>Universe</label>
+                <input class="form-control" type="number" name="universe" value="{{ universe }}" min="1" max="63999" required>
             </div>
-            <div class="col-md-6">
-                <label>Set-point (%)</label>
-                <select class="form-control" name="sp1">
-                    {% for p in range(1,101) %}
-                    <option value="{{ p }}" {{ 'selected' if p == sp1 else '' }}>{{ p }}%</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
 
-        <!-- Relay 2 -->
-        <div class="form-row mb-2">
-            <div class="col-md-6">
-                <label>Relay 2 Channel</label>
-                <input class="form-control" type="number" name="ch2" value="{{ ch2 }}" min="1" max="512">
+            {% for i in range(1, channel_count + 1) %}
+            <div class="form-row mb-2">
+                <div class="col-md-6">
+                    <label>Relay {{ i }} Channel</label>
+                    <input class="form-control" type="number" name="ch{{ i }}" value="{{ channels[i-1] }}" min="1" max="512" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Set-point (%)</label>
+                    <select class="form-control" name="sp{{ i }}">
+                        {% for p in range(1,101) %}
+                        <option value="{{ p }}" {{ 'selected' if p == setpoints[i-1] else '' }}>{{ p }}%</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="col-md-6">
-                <label>Set-point (%)</label>
-                <select class="form-control" name="sp2">
-                    {% for p in range(1,101) %}
-                    <option value="{{ p }}" {{ 'selected' if p == sp2 else '' }}>{{ p }}%</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
+            {% endfor %}
 
-        <!-- Relay 3 -->
-        <div class="form-row mb-2">
-            <div class="col-md-6">
-                <label>Relay 3 Channel</label>
-                <input class="form-control" type="number" name="ch3" value="{{ ch3 }}" min="1" max="512">
-            </div>
-            <div class="col-md-6">
-                <label>Set-point (%)</label>
-                <select class="form-control" name="sp3">
-                    {% for p in range(1,101) %}
-                    <option value="{{ p }}" {{ 'selected' if p == sp3 else '' }}>{{ p }}%</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <!-- Relay 4 -->
-        <div class="form-row mb-2">
-            <div class="col-md-6">
-                <label>Relay 4 Channel</label>
-                <input class="form-control" type="number" name="ch4" value="{{ ch4 }}" min="1" max="512">
-            </div>
-            <div class="col-md-6">
-                <label>Set-point (%)</label>
-                <select class="form-control" name="sp4">
-                    {% for p in range(1,101) %}
-                    <option value="{{ p }}" {{ 'selected' if p == sp4 else '' }}>{{ p }}%</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <button class="btn btn-primary" type="submit">Save & Apply</button>
-    </form></div></div>
+            <button class="btn btn-primary" type="submit">Save & Apply</button>
+        </form>
+    </div></div>
 </div></div>
+
+<p class="text-info">Current IP: {{ current_ip }}</p>
+<p class="text-warning">Changes take effect immediately.</p>
 {% endblock %}

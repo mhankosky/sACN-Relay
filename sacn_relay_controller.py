@@ -6,6 +6,7 @@ from adafruit_ssd1306 import SSD1306_I2C
 from PIL import Image, ImageDraw, ImageFont
 import board, busio, netifaces
 from gpiozero import OutputDevice, Button
+import psutil  # For CPU/Memory
 
 # -------------------------- APP DIRECTORY --------------------------
 APP_DIR = os.path.expanduser('~/sACN-Relay')
@@ -21,11 +22,11 @@ app.config['SESSION_FILE_DIR'] = os.path.join(APP_DIR, 'flask_session')
 Session(app)
 
 # -------------------------- VERSION --------------------------
-CURRENT_VERSION = "1.1.4"
+CURRENT_VERSION = "1.2.0"
 
-# -------------------------- GPIO --------------------------
-RELAY_PINS = [17, 18, 27, 22]
-BUTTON_PIN = 23
+# -------------------------- GPIO (8 Relays) --------------------------
+RELAY_PINS = [17, 18, 27, 22, 23, 24, 25, 26]  # 8 channels
+BUTTON_PIN = 5  # Reset button
 relays = [OutputDevice(p, active_high=False, initial_value=False) for p in RELAY_PINS]
 button = Button(BUTTON_PIN, pull_up=True, bounce_time=0.2)
 
@@ -48,8 +49,10 @@ default_config = {
     'network': 'dhcp', 'ip': '192.168.1.100', 'subnet': '255.255.255.0',
     'gateway': '192.168.1.1', 'dns1': '8.8.8.8', 'dns2': '8.8.4.4',
     'hostname': 'raspberrypi',
-    'universe': 1, 'channels': [1, 2, 3, 4],
-    'setpoints': [51, 51, 51, 51],
+    'universe': 1,
+    'channels': [1, 2, 3, 4, 5, 6, 7, 8],
+    'setpoints': [51, 51, 51, 51, 51, 51, 51, 51],
+    'mode': '4',  # '4' or '8'
     'version': CURRENT_VERSION,
     'theme': 'light',
     'security_enabled': False,
@@ -69,6 +72,11 @@ def load_config():
                 loaded[key] = value
         if loaded['version'] != CURRENT_VERSION:
             loaded['version'] = CURRENT_VERSION
+        
+        # Ensure 8 entries
+        loaded['channels'] = (loaded.get('channels', []) + [1]*8)[:8]
+        loaded['setpoints'] = (loaded.get('setpoints', []) + [51]*8)[:8]
+        
         config.update(loaded)
     except FileNotFoundError:
         config.update(default_config)
@@ -81,8 +89,11 @@ def save_config():
 
 load_config()
 
-relay_states = [False] * 4
-current_dmx_values = [0] * 4
+# Dynamic channel count
+MAX_CHANNELS = 8
+CHANNEL_COUNT = 4 if config['mode'] == '4' else 8
+relay_states = [False] * MAX_CHANNELS
+current_dmx_values = [0] * MAX_CHANNELS
 
 # ------------------- System helpers -------------------
 def apply_network_config():
@@ -135,8 +146,10 @@ def init_sacn():
         global current_dmx_values
         if p.dmxStartCode != 0x00: return
         d = p.dmxData
-        for i, ch in enumerate(config['channels']):
-            if i >= 4 or len(d) < ch: continue
+        # Only process up to CHANNEL_COUNT
+        for i in range(CHANNEL_COUNT):
+            ch = config['channels'][i]
+            if len(d) < ch: continue
             val = d[ch-1]
             percent = round(val / 255 * 100)
             current_dmx_values[i] = percent
@@ -146,10 +159,17 @@ def init_sacn():
                 relay_states[i] = new
                 relays[i].on() if new else relays[i].off()
 
+        # Explicitly disable relays beyond CHANNEL_COUNT
+        for i in range(CHANNEL_COUNT, MAX_CHANNELS):
+            if relay_states[i]:
+                relay_states[i] = False
+                relays[i].off()
+            current_dmx_values[i] = 0
+
 # --------------------- 5-second pulse --------------------
 def pulse_relay(rid):
     i = rid - 1
-    if 0 <= i < 4:
+    if 0 <= i < CHANNEL_COUNT:
         print(f"Pulse Relay {rid} ON for 5s")
         relay_states[i] = True
         relays[i].on()
@@ -167,7 +187,7 @@ def hardware_reset():
     apply_network_config()
     apply_hostname_config()
     init_sacn()
-    for i in range(4):
+    for i in range(MAX_CHANNELS):
         relay_states[i] = current_dmx_values[i] = 0
         relays[i].off()
     subprocess.run(['sudo', 'reboot'])
@@ -197,19 +217,20 @@ def update_oled():
                 ip = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
         except: pass
         draw.rectangle((0,0,128,64), fill=0)
-        draw.text((0,0), f"{hn[:12]} U:{config['universe']}", font=font, fill=255)
+        mode = "4" if CHANNEL_COUNT == 4 else "8"
+        draw.text((0,0), f"{hn[:10]} U:{config['universe']}", font=font, fill=255)
         draw.text((0,20), f"({ip}:8080)", font=font, fill=255)
-        bw, bh, m = 25, 16, 4
-        sx = (128 - (4*bw + 3*m)) // 2
-        for i in range(4):
+        bw, bh, m = 15, 12, 2
+        sx = (128 - (CHANNEL_COUNT*bw + (CHANNEL_COUNT-1)*m)) // 2
+        for i in range(CHANNEL_COUNT):
             x = sx + i*(bw+m); y = 44; ch = str(config['channels'][i])
             fill = 255 if relay_states[i] else 0
             txt  = 0   if relay_states[i] else 255
             draw.rectangle((x,y,x+bw,y+bh), outline=255-fill, fill=fill)
-            bb = draw.textbbox((x,y), f"[{ch}]", font=small_font)
+            bb = draw.textbbox((x,y), f"{ch}", font=small_font)
             tx = x + (bw - (bb[2]-bb[0]))//2
             ty = y + (bh - (bb[3]-bb[1]))//2
-            draw.text((tx,ty), f"[{ch}]", font=small_font, fill=txt)
+            draw.text((tx,ty), f"{ch}", font=small_font, fill=txt)
         oled.image(image); oled.show()
         time.sleep(1)
 
@@ -228,6 +249,15 @@ def get_current_ip():
             return netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]['addr']
     except: pass
     return 'No IP'
+
+def get_system_stats():
+    cpu = psutil.cpu_percent(interval=None)
+    mem = psutil.virtual_memory()
+    return {
+        'cpu_percent': round(cpu, 1),
+        'mem_used_mb': round(mem.used / 1024 / 1024, 1),
+        'mem_total_mb': round(mem.total / 1024 / 1024, 1)
+    }
 
 # -------------------------- Auth --------------------------
 def require_auth():
@@ -265,28 +295,18 @@ def main():
     ip = get_current_ip()
     if request.method == 'POST':
         config['universe'] = int(request.form['universe'])
-        config['channels'] = [
-            int(request.form['ch1']),
-            int(request.form['ch2']),
-            int(request.form['ch3']),
-            int(request.form['ch4'])
-        ]
-        config['setpoints'] = [
-            int(request.form['sp1']),
-            int(request.form['sp2']),
-            int(request.form['sp3']),
-            int(request.form['sp4'])
-        ]
+        for i in range(CHANNEL_COUNT):
+            config['channels'][i] = int(request.form[f'ch{i+1}'])
+            config['setpoints'][i] = int(request.form[f'sp{i+1}'])
         save_config()
         init_sacn()
         return redirect(url_for('main'))
 
     return render_template('main.html',
         hostname=config['hostname'], universe=config['universe'],
-        ch1=config['channels'][0], ch2=config['channels'][1],
-        ch3=config['channels'][2], ch4=config['channels'][3],
-        sp1=config['setpoints'][0], sp2=config['setpoints'][1],
-        sp3=config['setpoints'][2], sp4=config['setpoints'][3],
+        channels=config['channels'][:CHANNEL_COUNT],
+        setpoints=config['setpoints'][:CHANNEL_COUNT],
+        channel_count=CHANNEL_COUNT,
         current_ip=ip, version=CURRENT_VERSION, theme=config['theme'],
         security_enabled=config['security_enabled'])
 
@@ -298,9 +318,10 @@ def status():
         'dmx_percent': current_dmx_values[i],
         'setpoint': config['setpoints'][i],
         'relay_state': 'ON' if relay_states[i] else 'OFF'
-    } for i in range(4)]
+    } for i in range(CHANNEL_COUNT)]
     return render_template('status.html',
         hostname=config['hostname'], current_ip=ip, status=status_data,
+        channel_count=CHANNEL_COUNT,
         version=CURRENT_VERSION, theme=config['theme'],
         security_enabled=config['security_enabled'])
 
@@ -311,20 +332,28 @@ def status_data():
         'dmx_percent': current_dmx_values[i],
         'setpoint': config['setpoints'][i],
         'relay_state': 'ON' if relay_states[i] else 'OFF'
-    } for i in range(4)]
-    return jsonify({'status': status_data})
+    } for i in range(CHANNEL_COUNT)]
+    
+    system = get_system_stats()
+    
+    return jsonify({
+        'status': status_data,
+        'system': system
+    })
 
 @app.route('/test')
 def test():
     return render_template('test.html',
         hostname=config['hostname'],
-        channels=config['channels'],
+        channels=config['channels'][:CHANNEL_COUNT],
+        channel_count=CHANNEL_COUNT,
         version=CURRENT_VERSION, theme=config['theme'],
         security_enabled=config['security_enabled'])
 
 @app.route('/pulse/<int:rid>', methods=['POST'])
 def pulse(rid):
-    pulse_relay(rid)
+    if rid <= CHANNEL_COUNT:
+        pulse_relay(rid)
     return redirect(url_for('test'))
 
 @app.route('/networking', methods=['GET', 'POST'])
@@ -354,19 +383,43 @@ def networking():
 @app.route('/device', methods=['GET', 'POST'])
 def device():
     ip = get_current_ip()
+    reboot_needed = False
     if request.method == 'POST':
-        new = request.form['hostname'].strip()
-        if re.match(r'^[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]$', new) and len(new) <= 63:
-            config['hostname'] = new
+        new_hostname = request.form['hostname'].strip()
+        new_mode = request.form['mode']
+        if re.match(r'^[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]$', new_hostname) and len(new_hostname) <= 63:
+            old_mode = config['mode']
+            config['hostname'] = new_hostname
+            config['mode'] = new_mode
+
+            target_count = 4 if new_mode == '4' else 8
+            config['channels'] = config['channels'][:target_count] + [1]*(target_count - len(config['channels']))
+            config['setpoints'] = config['setpoints'][:target_count] + [51]*(target_count - len(config['setpoints']))
+
             save_config()
             apply_hostname_config()
-            return redirect(url_for('device'))
+            if old_mode != new_mode:
+                reboot_needed = True
+            global CHANNEL_COUNT
+            CHANNEL_COUNT = target_count
+            init_sacn()
+            flash("Settings saved!", "success")
         else:
             flash("Invalid hostname", "danger")
     return render_template('device.html',
         hostname=config['hostname'], current_ip=ip,
+        mode=config['mode'],
+        reboot_needed=reboot_needed,
         version=CURRENT_VERSION, theme=config['theme'],
         security_enabled=config['security_enabled'])
+
+@app.route('/reboot', methods=['POST'])
+def reboot_pi():
+    if config['security_enabled'] and 'authenticated' not in session:
+        return "Unauthorized", 403
+    flash("Rebooting Pi... Please wait 30 seconds.", "info")
+    threading.Timer(1.0, lambda: subprocess.run(['sudo', 'reboot'])).start()
+    return redirect(url_for('device'))
 
 @app.route('/interface', methods=['GET', 'POST'])
 def interface():
@@ -405,7 +458,8 @@ def backup():
 @app.route('/backup/download')
 def backup_download():
     hostname = config['hostname']
-    filename = f"{hostname}-sACN-Relay-config-v{CURRENT_VERSION}.json"
+    mode = "8" if config['mode'] == '8' else "4"
+    filename = f"{hostname}-sACN-Relay{mode}-config-v{CURRENT_VERSION}.json"
     return send_file(config_file, as_attachment=True, download_name=filename)
 
 @app.route('/backup/upload', methods=['POST'])
@@ -424,7 +478,6 @@ def backup_upload():
         flash("Invalid JSON file", "danger")
         return redirect(url_for('backup'))
 
-    # Validate version
     if 'version' not in uploaded:
         flash("Config missing version", "danger")
         return redirect(url_for('backup'))
@@ -432,14 +485,12 @@ def backup_upload():
         flash(f"Config version {uploaded['version']} is newer than current {CURRENT_VERSION}", "danger")
         return redirect(url_for('backup'))
 
-    # Validate required keys
     required = ['universe', 'channels', 'setpoints', 'network', 'ip', 'subnet', 'gateway', 'hostname']
     missing = [k for k in required if k not in uploaded]
     if missing:
         flash(f"Missing keys: {', '.join(missing)}", "danger")
         return redirect(url_for('backup'))
 
-    # Store in session
     session['uploaded_config'] = uploaded
     return render_template('backup_confirm.html',
         hostname=config['hostname'], current_ip=get_current_ip(),
@@ -454,15 +505,18 @@ def backup_confirm():
         return redirect(url_for('backup'))
     
     new_config = session.pop('uploaded_config')
-
-    # Merge with defaults
     for key, value in default_config.items():
         if key not in new_config:
             new_config[key] = value
     new_config['version'] = CURRENT_VERSION
 
-    global config
+    target_count = 4 if new_config['mode'] == '4' else 8
+    new_config['channels'] = (new_config.get('channels', []) + [1]*8)[:target_count]
+    new_config['setpoints'] = (new_config.get('setpoints', []) + [51]*8)[:target_count]
+
+    global config, CHANNEL_COUNT
     config.update(new_config)
+    CHANNEL_COUNT = target_count
     save_config()
     init_sacn()
     apply_network_config()

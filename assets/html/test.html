@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Test - sACN Relay 4{% endblock %}
+{% block title %}Test{% endblock %}
 {% set active_page = 'test' %}
 
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">Test Relays</h1>
 
 <div class="row">
-    {% for i in range(1,5) %}
+    {% for i in range(1, channel_count + 1) %}
     <div class="col-md-3 mb-3">
         <div class="card text-center">
             <div class="card-body">
@@ -20,4 +20,6 @@
     </div>
     {% endfor %}
 </div>
+
+<p class="text-info">Click to pulse relay for 5 seconds.</p>
 {% endblock %}

@@ -1,38 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Status - sACN Relay 4{% endblock %}
+{% block title %}Status{% endblock %}
 {% set active_page = 'status' %}
 
 {% block content %}
-<h1 class="h3 mb-4 text-gray-800">Status</h1>
+<h1 class="h3 mb-4 text-gray-800">Live Status (0.1s)</h1>
 
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">Live Status (0.1s)</h6>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Relay Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Relay</th>
+                                <th>Channel</th>
+                                <th>DMX %</th>
+                                <th>Set-point</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusTableBody">
+                            {% for s in status %}
+                            <tr>
+                                <td>Relay {{ loop.index }}</td>
+                                <td>{{ s.channel }}</td>
+                                <td>{{ s.dmx_percent }}%</td>
+                                <td>{{ s.setpoint }}%</td>
+                                <td><span class="badge badge-{{ 'success' if s.relay_state=='ON' else 'secondary' }}">{{ s.relay_state }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>Relay</th>
-                        <th>Channel</th>
-                        <th>DMX %</th>
-                        <th>Set-point</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="statusTableBody">
-                    {% for s in status %}
-                    <tr>
-                        <td>Relay {{ loop.index }}</td>
-                        <td>{{ s.channel }}</td>
-                        <td>{{ s.dmx_percent }}%</td>
-                        <td>{{ s.setpoint }}%</td>
-                        <td><span class="badge badge-{{ 'success' if s.relay_state=='ON' else 'secondary' }}">{{ s.relay_state }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">System</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>CPU:</strong> <span id="cpu">0%</span></p>
+                <p><strong>Memory:</strong> <span id="mem_used">0</span> / <span id="mem_total">0</span> MB</p>
+            </div>
         </div>
     </div>
 </div>
@@ -55,10 +71,14 @@
                     `;
                     tbody.appendChild(row);
                 });
+
+                // Update system stats
+                document.getElementById('cpu').textContent = data.system.cpu_percent + '%';
+                document.getElementById('mem_used').textContent = data.system.mem_used_mb;
+                document.getElementById('mem_total').textContent = data.system.mem_total_mb;
             });
     }
 
-    // Update every 100ms
     setInterval(updateStatus, 100);
 </script>
 {% endblock %}

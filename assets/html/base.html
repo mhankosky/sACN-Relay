@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{% block title %}sACN Relay 4{% endblock %}</title>
+    <title>{% block title %}sACN Relay {{ '8' if channel_count == 8 else '4' }}{% endblock %}</title>
     <link href="/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <link href="/assets/css/sb-admin-2.min.css" rel="stylesheet">
@@ -13,13 +13,12 @@
 </head>
 <body id="page-top" class="{% if theme == 'dark' %}bg-dark text-white{% else %}bg-light{% endif %}">
     <div id="wrapper">
-        <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/">
                 <div class="sidebar-brand-icon">
                     <i class="fa fa-bolt"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">sACN Relay 4</div>
+                <div class="sidebar-brand-text mx-3">sACN Relay {{ '8' if channel_count == 8 else '4' }}</div>
             </a>
             <div class="text-center">
                 <small class="text-white-50">{{ hostname }}</small>
@@ -29,7 +28,6 @@
             </div>
             <hr class="sidebar-divider my-0">
 
-            <!-- DMX Settings -->
             <li class="nav-item {% if active_page == 'main' %}active{% endif %}">
                 <a class="nav-link" href="/">
                     <i class="fa fa-tachometer"></i>
@@ -37,7 +35,6 @@
                 </a>
             </li>
 
-            <!-- Status -->
             <li class="nav-item {% if active_page == 'status' %}active{% endif %}">
                 <a class="nav-link" href="/status">
                     <i class="fa fa-bar-chart"></i>
@@ -45,7 +42,6 @@
                 </a>
             </li>
 
-            <!-- Test -->
             <li class="nav-item {% if active_page == 'test' %}active{% endif %}">
                 <a class="nav-link" href="/test">
                     <i class="fa fa-flask"></i>
@@ -53,7 +49,6 @@
                 </a>
             </li>
 
-            <!-- Networking -->
             <li class="nav-item {% if active_page == 'networking' %}active{% endif %}">
                 <a class="nav-link" href="/networking">
                     <i class="fa fa-wifi"></i>
@@ -61,15 +56,13 @@
                 </a>
             </li>
 
-            <!-- Hostname -->
             <li class="nav-item {% if active_page == 'device' %}active{% endif %}">
                 <a class="nav-link" href="/device">
                     <i class="fa fa-cog"></i>
-                    <span>Hostname</span>
+                    <span>Device Settings</span>
                 </a>
             </li>
 
-            <!-- Interface -->
             <li class="nav-item {% if active_page == 'interface' %}active{% endif %}">
                 <a class="nav-link" href="/interface">
                     <i class="fa fa-paint-brush"></i>
@@ -77,7 +70,6 @@
                 </a>
             </li>
 
-            <!-- Security -->
             <li class="nav-item {% if active_page == 'security' %}active{% endif %}">
                 <a class="nav-link" href="/security">
                     <i class="fa fa-shield"></i>
@@ -85,7 +77,6 @@
                 </a>
             </li>
 
-            <!-- Backup -->
             <li class="nav-item {% if active_page == 'backup' %}active{% endif %}">
                 <a class="nav-link" href="/backup">
                     <i class="fa fa-save"></i>
@@ -93,7 +84,6 @@
                 </a>
             </li>
 
-            <!-- Logout (Only if security enabled) -->
             {% if security_enabled %}
             <li class="nav-item mt-auto">
                 <a class="nav-link text-danger" href="/logout">
@@ -109,10 +99,8 @@
             </div>
         </ul>
 
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <!-- Topbar -->
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
@@ -126,7 +114,6 @@
                     </ul>
                 </nav>
 
-                <!-- Page Content -->
                 <div class="container-fluid">
                     {% block content %}{% endblock %}
                 </div>
