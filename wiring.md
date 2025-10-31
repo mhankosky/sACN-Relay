@@ -149,22 +149,3 @@ Your **sACN Relay 4/8** is now ready for power-up.
 
 ---
 
-### Save as `~/sACN-Relay/wiring.md`
-
-```bash
-nano ~/sACN-Relay/wiring.md
-```
-
-Paste the content → **Ctrl+X → Y → Enter**
-
----
-
-### Commit to GitHub
-
-```bash
-git add wiring.md
-git commit -m "Update wiring.md for 8-channel mode"
-git push
-```
-
----
