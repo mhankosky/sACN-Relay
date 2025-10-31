@@ -55,11 +55,15 @@ Control **4 relays** via sACN over Ethernet. Perfect for **lighting control**, *
 ## Installation (Direct on Pi)
 
 ```bash
-# 1. SSH into your Pi
-ssh pi@<pi-ip>
+# 1. Clone anywhere
+git clone https://github.com/mhankosky/sACN-Relay.git ~/my-temp-folder
 
-# 2. Clone the repo and install in one command
-git clone https://github.com/mhankosky/sACN-Relay.git && cd sACN-Relay && chmod +x install.sh && sudo ./install.sh
+# 2. Go to folder
+cd ~/my-temp-folder
+
+# 3. Run installer — installs to ~/sACN-Relay/
+chmod +x install.sh
+sudo ./install.sh
 ```
 
 > The installer:
