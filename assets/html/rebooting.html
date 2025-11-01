@@ -3,29 +3,26 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card shadow mb-4 mt-5">
-                <div class="card-header py-3 bg-warning">
-                    <h6 class="m-0 font-weight-bold text-dark">
-                        <i class="fa fa-power-off"></i> Pi is Rebooting...
-                    </h6>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-warning text-dark text-center py-4">
+                    <h3 class="font-weight-light">
+                        <i class="fas fa-power-off fa-fw"></i> Pi is Rebooting...
+                    </h3>
                 </div>
-                <div class="card-body text-center">
-                    <div class="spinner-border text-warning mb-3" role="status">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-warning mb-4" style="width: 3rem; height: 3rem;" role="status">
                         <span class="sr-only">Rebooting...</span>
                     </div>
-                    <h4>Please wait 60 seconds</h4>
-                    <p class="text-muted">The Pi is restarting to apply changes.</p>
-                    
-                    <div class="mt-4">
-                        <button id="refreshBtn" class="btn btn-primary" disabled>
-                            <i class="fa fa-sync"></i> Refresh in 60s
-                        </button>
-                        <a href="/" class="btn btn-secondary ml-2" id="backBtn" style="display:none;">
-                            <i class="fa fa-home"></i> Back to Main
-                        </a>
-                    </div>
+                    <h4 class="text-muted">Please wait <span id="countdown">60</span> seconds</h4>
+                    <p class="text-muted mt-3">The device is restarting to apply changes.</p>
+                    <p class="text-muted small">You will be redirected to the main page when complete.</p>
+                </div>
+                <div class="card-footer text-center py-3 bg-light">
+                    <a href="/" class="btn btn-primary" id="manualBtn" style="display:none;">
+                        <i class="fas fa-home"></i> Go to Main Page
+                    </a>
                 </div>
             </div>
         </div>
@@ -33,28 +30,24 @@
 </div>
 
 <script>
-    let countdown = 60;
-    const btn = document.getElementById('refreshBtn');
-    const backBtn = document.getElementById('backBtn');
-    
+    let seconds = 60;
+    const countdownEl = document.getElementById('countdown');
+    const manualBtn = document.getElementById('manualBtn');
+
     const timer = setInterval(() => {
-        countdown--;
-        btn.innerHTML = `<i class="fa fa-sync"></i> Refresh in ${countdown}s`;
-        
-        if (countdown <= 0) {
+        seconds--;
+        countdownEl.textContent = seconds;
+
+        if (seconds <= 0) {
             clearInterval(timer);
-            btn.innerHTML = '<i class="fa fa-sync"></i> Refreshing...';
-            btn.disabled = true;
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            // Redirect to main page
+            window.location.href = "/";
         }
     }, 1000);
 
+    // Show manual button after 60s as fallback
     setTimeout(() => {
-        btn.disabled = false;
-        btn.onclick = () => window.location.reload();
-        backBtn.style.display = 'inline-block';
+        manualBtn.style.display = 'inline-block';
     }, 60000);
 </script>
 {% endblock %}
