@@ -28,8 +28,8 @@
         51
     ],
     "mode": "8",
-    "version": "1.2.6",
-    "theme": "light",
+    "version": "1.2.15",
+    "theme": "dark",
     "security_enabled": false,
     "password": "admin123",
     "py_file": "/home/pi/sACN-Relay/sacn_relay_controller.py"

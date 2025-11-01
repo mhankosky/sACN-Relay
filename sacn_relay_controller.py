@@ -22,7 +22,7 @@ app.config['SESSION_FILE_DIR'] = os.path.join(APP_DIR, 'flask_session')
 Session(app)
 
 # -------------------------- VERSION --------------------------
-CURRENT_VERSION = "1.2.15"
+CURRENT_VERSION = "1.2.16"
 
 # -------------------------- GPIO (8 Relays) --------------------------
 RELAY_PINS = [17, 18, 27, 22, 23, 24, 25, 26]
@@ -126,7 +126,10 @@ CHANNEL_COUNT = 4 if config['mode'] == '4' else 8
 # ------------------- System helpers -------------------
 def run_sudo_command(cmd):
     try:
-        return subprocess.run(['/usr/bin/sudo'] + cmd, check=True)
+        return subprocess.run(['/usr/bin/sudo'] + cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {e.stderr}")
+        raise
     except FileNotFoundError:
         print("sudo not found, running without sudo (may fail)")
         return subprocess.run(cmd, check=True)
@@ -150,8 +153,17 @@ static domain_name_servers={config['dns1']} {config['dns2']}
         tf.writelines(lines); tmp = tf.name
     run_sudo_command(['cp', tmp, dhcpcd_conf])
     os.unlink(tmp)
-    run_sudo_command(['systemctl', 'restart', 'dhcpcd'])
-    time.sleep(5)
+
+    # SAFELY RESTART NETWORK
+    try:
+        run_sudo_command(['systemctl', 'restart', 'dhcpcd'])
+    except subprocess.CalledProcessError:
+        print("dhcpcd restart failed — trying alternatives")
+        try:
+            run_sudo_command(['ip', 'addr', 'flush', 'dev', 'eth0'])
+            run_sudo_command(['systemctl', 'restart', 'networking'])
+        except:
+            print("Network restart failed — reboot required")
 
 def subnet_to_cidr(s): return 24 if s == '255.255.255.0' else 24
 
@@ -177,12 +189,12 @@ def init_sacn():
     receiver = sACNreceiver()
     
     max_retries = 10
-    universe_int = config['universe']  # ← int
+    universe_int = config['universe']
     
     for attempt in range(max_retries):
         try:
             receiver.start()
-            receiver.join_multicast(universe_int)  # ← int
+            receiver.join_multicast(universe_int)
             receiver.register_listener('universe', sacn_packet_handler, universe=universe_int)
             print(f"sACN joined universe {universe_int} on attempt {attempt + 1}")
             break
@@ -540,8 +552,11 @@ def backup_confirm():
     CHANNEL_COUNT = target_count
     save_config()
     init_sacn()
-    apply_network_config()
-    apply_hostname_config()
+    try:
+        apply_network_config()
+    except:
+        flash("Config restored! Reboot to apply network changes.", "warning")
+        return redirect(url_for('main'))
 
     flash("Config restored successfully!", "success")
     return redirect(url_for('main'))
@@ -595,7 +610,7 @@ def ota_update():
             f.write(content)
 
         session['ota_pending'] = {'version': new_version}
-        flash(f"Update ready: v{new_version} Reboot to apply", "success")
+        flash(f"Update ready: v{new_version} → Reboot to apply", "success")
         return redirect(url_for('ota_update'))
 
     return render_template('ota.html',
