@@ -15,7 +15,7 @@
                 <label>Current Version: <strong>{{ current_version }}</strong></label>
                 <input type="file" class="form-control" name="file" accept=".py" required>
             </div>
-            <button type="submit" class="btn btn-warning">Update & Restart</button>
+            <button type="submit" class="btn btn-warning">Upload & Prepare</button>
         </form>
     </div>
 </div>
@@ -23,7 +23,7 @@
 <div class="alert alert-info">
     <strong>Requirements:</strong>
     <ul>
-        <li>File must be named <code>sacn_relay_controller.py</code></li>
+        <li>File must contain: <code>CURRENT_VERSION = "x.y.z"</code></li>
         <li>Version must be higher than <code>{{ current_version }}</code></li>
         <li>No syntax errors</li>
     </ul>

@@ -1,41 +1,39 @@
 #!/bin/bash
 set -e
 
-echo "=== sACN Relay 4/8 v1.2.0 – Final Installer ==="
+echo "=== sACN Relay 4/8 v1.2.5 – Final Installer ==="
 
 APP_DIR="$HOME/sACN-Relay"
 VENV_DIR="$APP_DIR/sacn_venv"
 
 echo "[1/7] Installing to: $APP_DIR"
 
-# ------------------- 1. Update System -------------------
-echo "[2/7] Updating system..."
-sudo apt update && sudo apt upgrade -y
-
-# ------------------- 2. Install Dependencies -------------------
-echo "[3/7] Installing system dependencies..."
+# --- System packages ---
+sudo apt update
 sudo apt install -y python3-pip python3-venv git i2c-tools
 
-# ------------------- 3. Enable I2C -------------------
-echo "[ ] Enabling I2C interface..."
-sudo raspi-config nonint do_i2c 1
+# --- Enable I2C ---
+#sudo raspi-config nonint do_i2c 1
 
-# ------------------- 4. Create Virtual Environment -------------------
-echo "[4/7] Creating Python virtual environment..."
-python3 -m venv "$VENV_DIR"
+# --- Create venv ---
+echo "[4/7] Creating virtual environment..."
+python3 -m venv "$VENV_DIR" || { echo "Failed to create venv"; exit 1; }
+
+# --- Activate & install ---
 source "$VENV_DIR/bin/activate"
-
-# ------------------- 5. Install Python Packages -------------------
-echo "[5/7] Installing Python dependencies..."
 pip install --upgrade pip
 pip install flask flask-session sacn adafruit-circuitpython-ssd1306 pillow gpiozero netifaces psutil adafruit-blinka RPi.GPIO
 
-# ------------------- 6. Create Systemd Service -------------------
-echo "[6/7] Creating systemd service..."
+# --- Fix permissions ---
+sudo chown -R pi:pi "$APP_DIR"
+sudo chmod -R 755 "$APP_DIR"
+
+# --- Systemd service ---
 sudo tee /etc/systemd/system/sacn-relay.service > /dev/null << EOF
 [Unit]
 Description=sACN Relay 4/8 Controller
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -44,31 +42,17 @@ WorkingDirectory=$APP_DIR
 Environment=PATH=$VENV_DIR/bin
 ExecStart=$VENV_DIR/bin/python $APP_DIR/sacn_relay_controller.py
 Restart=always
-RestartSec=5
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# ------------------- 7. Enable & Start Service -------------------
-echo "[7/7] Enabling and starting service..."
 sudo systemctl daemon-reload
 sudo systemctl enable sacn-relay.service
-sudo systemctl restart sacn-relay.service
 
-# ------------------- Final Output -------------------
 echo
 echo "=== INSTALLATION COMPLETE! ==="
+echo "Run: sudo systemctl start sacn-relay"
+echo "Or: sudo reboot"
 echo "Web UI: http://$(hostname -I | awk '{print $1}' 2>/dev/null || echo '<IP>'):8080"
-echo
-echo "=== SERVICE CONTROL ==="
-echo "  Status:   sudo systemctl status sacn-relay"
-echo "  Logs:     sudo journalctl -u sacn-relay -f"
-echo "  Stop:     sudo systemctl stop sacn-relay"
-echo "  Start:    sudo systemctl start sacn-relay"
-echo
-echo "=== HARDWARE CHECK ==="
-echo "  OLED:  i2cdetect -y 1  (should show 3c)"
-echo "  GPIO:  Test relays via Test page"
-echo
-echo "Reboot recommended: sudo reboot"

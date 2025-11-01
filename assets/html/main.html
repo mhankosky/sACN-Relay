@@ -1,41 +1,74 @@
 {% extends "base.html" %}
-{% block title %}DMX Settings{% endblock %}
+{% block title %}sACN Settings{% endblock %}
 {% set active_page = 'main' %}
 
 {% block content %}
-<h1 class="h3 mb-4 text-gray-800">DMX Settings</h1>
+<h1 class="h3 mb-4 text-gray-800">sACN Settings</h1>
 
-<div class="row"><div class="col-lg-8">
-    <div class="card shadow mb-4"><div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Universe & Channels</h6></div>
-    <div class="card-body">
-        <form method="post">
-            <div class="form-group">
-                <label>Universe</label>
-                <input class="form-control" type="number" name="universe" value="{{ universe }}" min="1" max="63999" required>
-            </div>
-
-            {% for i in range(1, channel_count + 1) %}
-            <div class="form-row mb-2">
-                <div class="col-md-6">
-                    <label>Relay {{ i }} Channel</label>
-                    <input class="form-control" type="number" name="ch{{ i }}" value="{{ channels[i-1] }}" min="1" max="512" required>
-                </div>
-                <div class="col-md-6">
-                    <label>Set-point (%)</label>
-                    <select class="form-control" name="sp{{ i }}">
-                        {% for p in range(1,101) %}
-                        <option value="{{ p }}" {{ 'selected' if p == setpoints[i-1] else '' }}>{{ p }}%</option>
-                        {% endfor %}
-                    </select>
+<form method="post">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Universe & Channels</h6>
+        </div>
+        <div class="card-body">
+            <!-- Universe -->
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label">sACN Universe</label>
+                <div class="col-md-9">
+                    <input type="number" class="form-control" name="universe" value="{{ universe }}" min="1" max="63999" required>
                 </div>
             </div>
-            {% endfor %}
 
-            <button class="btn btn-primary" type="submit">Save & Apply</button>
-        </form>
-    </div></div>
-</div></div>
+            <!-- Relays 1–4 -->
+            <div class="row">
+                {% for i in range(4) %}
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card h-100 border-left-primary">
+                        <div class="card-header py-2 bg-primary text-white">
+                            <h6 class="m-0 font-weight-bold">Relay {{ i+1 }}</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="form-group mb-2">
+                                <label class="small mb-1">DMX Channel</label>
+                                <input type="number" class="form-control form-control-sm" name="ch{{ i+1 }}" value="{{ channels[i] }}" min="1" max="512" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="small mb-1">Set-point (%)</label>
+                                <input type="number" class="form-control form-control-sm" name="sp{{ i+1 }}" value="{{ setpoints[i] }}" min="1" max="100" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
-<p class="text-info">Current IP: {{ current_ip }}</p>
-<p class="text-warning">Changes take effect immediately.</p>
+            <!-- Relays 5–8 -->
+            <div class="row">
+                {% for i in range(4, channel_count) %}
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card h-100 border-left-info">
+                        <div class="card-header py-2 bg-info text-white">
+                            <h6 class="m-0 font-weight-bold">Relay {{ i+1 }}</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="form-group mb-2">
+                                <label class="small mb-1">DMX Channel</label>
+                                <input type="number" class="form-control form-control-sm" name="ch{{ i+1 }}" value="{{ channels[i] }}" min="1" max="512" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="small mb-1">Set-point (%)</label>
+                                <input type="number" class="form-control form-control-sm" name="sp{{ i+1 }}" value="{{ setpoints[i] }}" min="1" max="100" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card-footer text-center">
+            <button type="submit" class="btn btn-success btn-lg">Save & Apply</button>
+        </div>
+    </div>
+</form>
 {% endblock %}

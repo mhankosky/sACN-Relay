@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 import board, busio, netifaces
 from gpiozero import OutputDevice
 import psutil
+from adafruit_ssd1306 import SSD1306_I2C
 
 # -------------------------- APP DIRECTORY --------------------------
 APP_DIR = os.path.expanduser('~/sACN-Relay')
@@ -21,10 +22,10 @@ app.config['SESSION_FILE_DIR'] = os.path.join(APP_DIR, 'flask_session')
 Session(app)
 
 # -------------------------- VERSION --------------------------
-CURRENT_VERSION = "1.2.0"
+CURRENT_VERSION = "1.2.15"
 
 # -------------------------- GPIO (8 Relays) --------------------------
-RELAY_PINS = [17, 18, 27, 22, 23, 24, 25, 26]  # 8 channels
+RELAY_PINS = [17, 18, 27, 22, 23, 24, 25, 26]
 relays = [OutputDevice(p, active_high=False, initial_value=False) for p in RELAY_PINS]
 
 # -------------------------- OLED --------------------------
@@ -46,6 +47,32 @@ small_font = ImageFont.load_default()
 
 # -------------------------- sACN --------------------------
 receiver = None
+current_dmx_values = [0] * 8
+relay_states = [False] * 8
+
+# -------------------------- GLOBAL sACN CALLBACK --------------------------
+def sacn_packet_handler(packet):
+    global current_dmx_values, relay_states
+    if packet.dmxStartCode != 0x00:
+        return
+    d = packet.dmxData
+    for i in range(CHANNEL_COUNT):
+        ch = config['channels'][i]
+        if len(d) < ch:
+            continue
+        val = d[ch-1]
+        percent = round(val / 255 * 100)
+        current_dmx_values[i] = percent
+        setpoint = config['setpoints'][i]
+        new_state = percent >= setpoint
+        if new_state != relay_states[i]:
+            relay_states[i] = new_state
+            relays[i].on() if new_state else relays[i].off()
+    for i in range(CHANNEL_COUNT, MAX_CHANNELS):
+        if relay_states[i]:
+            relay_states[i] = False
+            relays[i].off()
+        current_dmx_values[i] = 0
 
 # -------------------------- Config --------------------------
 config_file = os.path.join(APP_DIR, 'config.json')
@@ -95,10 +122,15 @@ load_config()
 
 MAX_CHANNELS = 8
 CHANNEL_COUNT = 4 if config['mode'] == '4' else 8
-relay_states = [False] * MAX_CHANNELS
-current_dmx_values = [0] * MAX_CHANNELS
 
 # ------------------- System helpers -------------------
+def run_sudo_command(cmd):
+    try:
+        return subprocess.run(['/usr/bin/sudo'] + cmd, check=True)
+    except FileNotFoundError:
+        print("sudo not found, running without sudo (may fail)")
+        return subprocess.run(cmd, check=True)
+
 def apply_network_config():
     dhcpcd_conf = '/etc/dhcpcd.conf'
     with open(dhcpcd_conf) as f: lines = f.readlines()
@@ -116,9 +148,9 @@ static domain_name_servers={config['dns1']} {config['dns2']}
 
     with tempfile.NamedTemporaryFile('w', delete=False) as tf:
         tf.writelines(lines); tmp = tf.name
-    subprocess.run(['sudo', 'cp', tmp, dhcpcd_conf], check=True)
+    run_sudo_command(['cp', tmp, dhcpcd_conf])
     os.unlink(tmp)
-    subprocess.run(['sudo', 'systemctl', 'restart', 'dhcpcd'])
+    run_sudo_command(['systemctl', 'restart', 'dhcpcd'])
     time.sleep(5)
 
 def subnet_to_cidr(s): return 24 if s == '255.255.255.0' else 24
@@ -127,44 +159,43 @@ def apply_hostname_config():
     new = config['hostname']
     if not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]$', new) or len(new) > 63:
         raise ValueError('Invalid hostname')
-    subprocess.run(['sudo', 'hostnamectl', 'set-hostname', new], check=True)
+    run_sudo_command(['hostnamectl', 'set-hostname', new])
     with open('/etc/hosts') as f: lines = f.readlines()
     lines = [l.replace(f" {current_hostname} ", f" {new} ") for l in lines]
     with tempfile.NamedTemporaryFile('w', delete=False) as tf:
         tf.writelines(lines); tmp = tf.name
-    subprocess.run(['sudo', 'cp', tmp, '/etc/hosts'], check=True)
+    run_sudo_command(['cp', tmp, '/etc/hosts'])
     os.unlink(tmp)
     globals()['current_hostname'] = new
 
-# -------------------------- sACN --------------------------
+# -------------------------- sACN INIT --------------------------
 def init_sacn():
     global receiver
-    if receiver: receiver.stop()
+    if receiver:
+        receiver.stop()
+    
     receiver = sACNreceiver()
-    receiver.start()
-    receiver.join_multicast(config['universe'])
-
-    @receiver.listen_on('universe', universe=config['universe'])
-    def pkt(p):
-        global current_dmx_values
-        if p.dmxStartCode != 0x00: return
-        d = p.dmxData
-        for i in range(CHANNEL_COUNT):
-            ch = config['channels'][i]
-            if len(d) < ch: continue
-            val = d[ch-1]
-            percent = round(val / 255 * 100)
-            current_dmx_values[i] = percent
-            setpoint = config['setpoints'][i]
-            new = percent >= setpoint
-            if new != relay_states[i]:
-                relay_states[i] = new
-                relays[i].on() if new else relays[i].off()
-        for i in range(CHANNEL_COUNT, MAX_CHANNELS):
-            if relay_states[i]:
-                relay_states[i] = False
-                relays[i].off()
-            current_dmx_values[i] = 0
+    
+    max_retries = 10
+    universe_int = config['universe']  # ← int
+    
+    for attempt in range(max_retries):
+        try:
+            receiver.start()
+            receiver.join_multicast(universe_int)  # ← int
+            receiver.register_listener('universe', sacn_packet_handler, universe=universe_int)
+            print(f"sACN joined universe {universe_int} on attempt {attempt + 1}")
+            break
+        except Exception as e:
+            if "No such device" in str(e) or "Network is down" in str(e):
+                if attempt < max_retries - 1:
+                    print(f"Network not ready, retry {attempt + 1}/{max_retries}...")
+                    time.sleep(3)
+                else:
+                    print("Network failed — starting anyway")
+            else:
+                print(f"sACN error: {e}")
+                break
 
 # --------------------- 5-second pulse --------------------
 def pulse_relay(rid):
@@ -207,6 +238,11 @@ def update_oled():
         time.sleep(1)
 
 threading.Thread(target=update_oled, daemon=True).start()
+
+# -------------------------- STARTUP DELAY --------------------------
+print("Waiting 10 seconds for network to stabilize...")
+time.sleep(10)
+
 init_sacn()
 
 # -------------------------- Flask --------------------------
@@ -266,12 +302,16 @@ def logout():
 def main():
     ip = get_current_ip()
     if request.method == 'POST':
-        config['universe'] = int(request.form['universe'])
-        for i in range(CHANNEL_COUNT):
-            config['channels'][i] = int(request.form[f'ch{i+1}'])
-            config['setpoints'][i] = int(request.form[f'sp{i+1}'])
-        save_config()
-        init_sacn()
+        try:
+            config['universe'] = int(request.form['universe'])
+            for i in range(CHANNEL_COUNT):
+                config['channels'][i] = int(request.form[f'ch{i+1}'])
+                config['setpoints'][i] = int(request.form[f'sp{i+1}'])
+            save_config()
+            init_sacn()
+            flash("Settings saved!", "success")
+        except Exception as e:
+            flash(f"Invalid input: {e}", "danger")
         return redirect(url_for('main'))
 
     return render_template('main.html',
@@ -365,11 +405,16 @@ def device():
             config['mode'] = new_mode
 
             target_count = 4 if new_mode == '4' else 8
-            config['channels'] = config['channels'][:target_count] + [1]*(target_count - len(config['channels']))
-            config['setpoints'] = config['setpoints'][:target_count] + [51]*(target_count - len(config['setpoints']))
+            current_ch = config['channels'][:8]
+            config['channels'] = current_ch[:target_count] + [1] * max(0, target_count - len(current_ch))
+            current_sp = config['setpoints'][:8]
+            config['setpoints'] = current_sp[:target_count] + [51] * max(0, target_count - len(current_sp))
 
             save_config()
-            apply_hostname_config()
+            try:
+                apply_hostname_config()
+            except Exception as e:
+                flash(f"Hostname update failed: {e}", "warning")
             if old_mode != new_mode:
                 reboot_needed = True
             global CHANNEL_COUNT
@@ -389,9 +434,13 @@ def device():
 def reboot_pi():
     if config['security_enabled'] and 'authenticated' not in session:
         return "Unauthorized", 403
-    flash("Rebooting Pi... Please wait 30 seconds.", "info")
-    threading.Timer(1.0, lambda: subprocess.run(['sudo', 'reboot'])).start()
-    return redirect(url_for('device'))
+    flash("Rebooting Pi... Please wait 60 seconds.", "info")
+    threading.Timer(1.0, lambda: subprocess.run(['/usr/bin/sudo', 'reboot'])).start()
+    return redirect(url_for('rebooting'))
+
+@app.route('/rebooting')
+def rebooting():
+    return render_template('rebooting.html')
 
 @app.route('/interface', methods=['GET', 'POST'])
 def interface():
@@ -503,39 +552,50 @@ def ota_update():
     if not require_auth():
         return redirect(url_for('login', next='/ota'))
 
+    if 'ota_pending' in session:
+        if request.method == 'POST' and request.form.get('confirm_reboot'):
+            flash("Rebooting Pi to apply v" + session['ota_pending']['version'] + "...", "info")
+            session.pop('ota_pending')
+            threading.Timer(1.0, lambda: subprocess.run(['/usr/bin/sudo', 'reboot'])).start()
+            return redirect(url_for('rebooting'))
+        return render_template('ota_confirm.html',
+            new_version=session['ota_pending']['version'],
+            current_version=CURRENT_VERSION)
+
     if request.method == 'POST':
         if 'file' not in request.files:
             flash("No file uploaded", "danger")
             return redirect(url_for('ota_update'))
         file = request.files['file']
-        if file.filename == '' or not file.filename.endswith('.py'):
-            flash("Invalid file", "danger")
+        if not file.filename.endswith('.py'):
+            flash("Must be .py file", "danger")
             return redirect(url_for('ota_update'))
 
+        content = file.read().decode('utf-8')
+
         try:
-            content = file.read().decode('utf-8')
             ast.parse(content)
         except Exception as e:
             flash(f"Syntax error: {e}", "danger")
             return redirect(url_for('ota_update'))
 
-        version_match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', content)
+        version_match = re.search(r'CURRENT_VERSION\s*=\s*[\'"](\d+\.\d+\.\d+)[\'"]', content)
         if not version_match:
-            flash("No version found", "danger")
+            flash("CURRENT_VERSION not found! Must be: CURRENT_VERSION = \"x.y.z\"", "danger")
             return redirect(url_for('ota_update'))
         new_version = version_match.group(1)
+
         if new_version <= CURRENT_VERSION:
             flash(f"Version {new_version} not newer than {CURRENT_VERSION}", "danger")
             return redirect(url_for('ota_update'))
 
         backup_path = os.path.join(APP_DIR, f"sacn_relay_controller.py.bak.v{CURRENT_VERSION}")
         os.rename(config['py_file'], backup_path)
-
         with open(config['py_file'], 'w') as f:
             f.write(content)
 
-        flash(f"Updated to v{new_version}! Restarting...", "success")
-        threading.Timer(2.0, lambda: subprocess.run(['sudo', 'systemctl', 'restart', 'sacn-relay'])).start()
+        session['ota_pending'] = {'version': new_version}
+        flash(f"Update ready: v{new_version} Reboot to apply", "success")
         return redirect(url_for('ota_update'))
 
     return render_template('ota.html',

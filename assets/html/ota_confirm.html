@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Reboot to Apply Update{% endblock %}
+{% set active_page = 'ota' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Update Ready!</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-success">Update Prepared</h6>
+    </div>
+    <div class="card-body">
+        <p>New version <strong>v{{ new_version }}</strong> has been uploaded and verified.</p>
+        <p>Current version: <strong>v{{ current_version }}</strong></p>
+        
+        <form method="post">
+            <button type="submit" name="confirm_reboot" value="1" class="btn btn-danger">
+                <i class="fa fa-power-off"></i> Reboot Pi to Apply
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    <strong>Warning:</strong> The Pi will reboot in 30 seconds. Web UI will be unavailable until boot completes.
+</div>
+{% endblock %}
